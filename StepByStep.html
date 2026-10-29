@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaS Payment Gateway Integration Guide</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter & Fira Code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            vscode: {
+              bg: '#1e1e1e',
+              sidebar: '#252526',
+              editor: '#1e1e1e',
+              tabActive: '#1e1e1e',
+              tabInactive: '#2d2d2d',
+              border: '#3c3c3c',
+              accent: '#007acc'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #181825;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #313244;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #45475a;
+    }
+
+    .glow-step {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    }
+    
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(16, 185, 129, 0.4); }
+      50% { border-color: rgba(16, 185, 129, 0.9); }
+    }
+
+    .pulse-active {
+      animation: pulse-border 2s infinite;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-gray-950">
+
+  <!-- Header Section -->
+  <header class="border-b border-gray-800 bg-gray-900/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20 shadow-inner">
+          <i class="fa-solid fa-layer-group text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+            SaaS Payment Gateway Integration Guide
+          </h1>
+          <p class="text-xs text-gray-400">Interactive Developer Walkthrough: How Alex Integrates GCash, Maya & Cards</p>
+        </div>
+      </div>
+
+      <!-- Quick Progress Indicator -->
+      <div class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 px-3.5 py-1.5 rounded-xl text-xs">
+        <span class="text-gray-400">Step Progress:</span>
+        <div class="flex items-center gap-1.5 font-mono font-bold text-emerald-400">
+          <span id="progress-text">1 / 5</span>
+          <div class="w-16 h-2 bg-gray-800 rounded-full overflow-hidden">
+            <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 20%"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Architectural Overview Flowchart Banner -->
+  <section class="bg-gray-900/40 border-b border-gray-800/80 py-6 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-sitemap text-emerald-400"></i> High-Level Architecture
+        </h2>
+        <span class="text-[11px] text-gray-500 font-mono">Payload & Communication Flow</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-center text-xs relative">
+        
+        <!-- Node 1 -->
+        <div id="arch-node-1" class="bg-gray-900 border border-emerald-500/30 p-3.5 rounded-xl shadow transition duration-300 flex flex-col items-center gap-1.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <span class="font-bold text-gray-200">1. Customer</span>
+          <span class="text-[10px] text-gray-400">Clicks "Pay ₱4,650"</span>
+        </div>
+
+        <!-- Node 2 -->
+        <div id="arch-node-2" class="bg-gray-900 border border-gray-800 p-3.5 rounded-xl shadow transition duration-300 flex flex-col items-center gap-1.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-laptop-code"></i>
+          </div>
+          <span class="font-bold text-gray-200">2. Alex's App (Server)</span>
+          <span class="text-[10px] text-gray-400">Calls Gateway API + Secret Key</span>
+        </div>
+
+        <!-- Node 3 -->
+        <div id="arch-node-3" class="bg-gray-900 border border-gray-800 p-3.5 rounded-xl shadow transition duration-300 flex flex-col items-center gap-1.5">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-building-columns"></i>
+          </div>
+          <span class="font-bold text-gray-200">3. Payment Gateway</span>
+          <span class="text-[10px] text-gray-400">PayMongo / Xendit API</span>
+        </div>
+
+        <!-- Node 4 -->
+        <div id="arch-node-4" class="bg-gray-900 border border-gray-800 p-3.5 rounded-xl shadow transition duration-300 flex flex-col items-center gap-1.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-base">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <span class="font-bold text-gray-200">4. Payment Networks</span>
+          <span class="text-[10px] text-gray-400">GCash / Maya / Visa / MC</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Step Navigator Tabs -->
+  <nav class="bg-gray-950 border-b border-gray-800 sticky top-[65px] z-30 overflow-x-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex gap-2 py-2 min-w-max">
+      
+      <button onclick="goToStep(1)" id="step-tab-1" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition bg-emerald-600 text-white shadow">
+        <span class="w-5 h-5 rounded-full bg-emerald-800 text-white text-[10px] font-mono flex items-center justify-center">1</span>
+        <span>Step 1: Get API Keys</span>
+      </button>
+
+      <button onclick="goToStep(2)" id="step-tab-2" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition text-gray-400 hover:text-white hover:bg-gray-900">
+        <span class="w-5 h-5 rounded-full bg-gray-800 text-gray-300 text-[10px] font-mono flex items-center justify-center">2</span>
+        <span>Step 2: VS Code & .env</span>
+      </button>
+
+      <button onclick="goToStep(3)" id="step-tab-3" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition text-gray-400 hover:text-white hover:bg-gray-900">
+        <span class="w-5 h-5 rounded-full bg-gray-800 text-gray-300 text-[10px] font-mono flex items-center justify-center">3</span>
+        <span>Step 3: Write Code</span>
+      </button>
+
+      <button onclick="goToStep(4)" id="step-tab-4" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition text-gray-400 hover:text-white hover:bg-gray-900">
+        <span class="w-5 h-5 rounded-full bg-gray-800 text-gray-300 text-[10px] font-mono flex items-center justify-center">4</span>
+        <span>Step 4: Customer Flow</span>
+      </button>
+
+      <button onclick="goToStep(5)" id="step-tab-5" class="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition text-gray-400 hover:text-white hover:bg-gray-900">
+        <span class="w-5 h-5 rounded-full bg-gray-800 text-gray-300 text-[10px] font-mono flex items-center justify-center">5</span>
+        <span>Step 5: Webhooks</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- STEP 1: Getting the API Keys -->
+    <!-- ========================================== -->
+    <section id="step-content-1" class="space-y-6">
+      
+      <!-- Explanation Header -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold rounded-lg border border-emerald-500/20">Step 1</span>
+          <h2 class="text-xl font-bold text-gray-100">Obtaining API Keys from the Developer Dashboard</h2>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed">
+          Before Alex writes a single line of code, Alex registers an account with a Payment Service Provider (PayMongo/Xendit). Once verified, Alex gets access to a developer dashboard where secret keys are provisioned.
+        </p>
+      </div>
+
+      <!-- Interactive Simulated Dashboard -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+        <!-- Dashboard Topbar -->
+        <div class="bg-gray-950 px-5 py-3 border-b border-gray-800 flex justify-between items-center text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+            <span class="font-bold text-gray-300">PayMongo / Xendit Developer Dashboard</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400">Environment:</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono font-semibold">Live Mode</span>
+          </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-gray-800 pb-4">
+            <div>
+              <h3 class="font-bold text-gray-200">API Credentials for Alex's Store</h3>
+              <p class="text-xs text-gray-400">Use these keys to authenticate your website API calls.</p>
+            </div>
+            <button onclick="generateNewKeys()" class="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold rounded-xl border border-gray-700 transition flex items-center gap-2">
+              <i class="fa-solid fa-arrows-rotate text-emerald-400"></i>
+              <span>Regenerate Keys</span>
+            </button>
+          </div>
+
+          <!-- Key Box 1: Public Key -->
+          <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-blue-400 font-mono">Public / Publishable Key</span>
+                <span class="text-[10px] bg-blue-500/10 text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded">Safe for Frontend</span>
+              </div>
+              <button onclick="copyText('pk_key_value', 'pk-copy')" class="text-xs text-gray-400 hover:text-emerald-400 transition flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i> <span id="pk-copy">Copy</span>
+              </button>
+            </div>
+            <div class="bg-gray-900 px-3.5 py-2.5 rounded-lg font-mono text-xs text-gray-200 border border-gray-800 flex justify-between items-center">
+              <span id="pk_key_value">pk_live_11223344556677889900ddeeff</span>
+            </div>
+            <p class="text-[11px] text-gray-400">Used on your website's front-end to safely display payment forms and UI components.</p>
+          </div>
+
+          <!-- Key Box 2: Secret Key -->
+          <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 space-y-2">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-amber-400 font-mono">Secret Key</span>
+                <span class="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded font-bold">KEEP SECRET (Server Only)</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <button onclick="toggleKeyVisibility()" class="text-xs text-gray-400 hover:text-amber-400 transition flex items-center gap-1">
+                  <i class="fa-solid fa-eye" id="eye-icon"></i> <span id="eye-text">Show</span>
+                </button>
+                <button onclick="copyText('sk_key_value', 'sk-copy')" class="text-xs text-gray-400 hover:text-emerald-400 transition flex items-center gap-1">
+                  <i class="fa-regular fa-copy"></i> <span id="sk-copy">Copy</span>
+                </button>
+              </div>
+            </div>
+            <div class="bg-gray-900 px-3.5 py-2.5 rounded-lg font-mono text-xs text-amber-300 border border-gray-800 flex justify-between items-center">
+              <span id="sk_key_value">sk_live_••••••••••••••••••••••••••••</span>
+            </div>
+            <p class="text-[11px] text-gray-400">Authenticates transactions with GCash/banks. Must NEVER be exposed in public website code.</p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer Navigation -->
+      <div class="flex justify-end">
+        <button onclick="goToStep(2)" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-2">
+          <span>Next: Step 2 - Setting Up VS Code</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- STEP 2: Setting Up VS Code & .env -->
+    <!-- ========================================== -->
+    <section id="step-content-2" class="space-y-6 hidden">
+      
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold rounded-lg border border-emerald-500/20">Step 2</span>
+          <h2 class="text-xl font-bold text-gray-100">Configuring VS Code & Environment Secrets</h2>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed">
+          Alex opens VS Code. To prevent pushing sensitive API keys to GitHub or public servers, Alex stores the secret key in an environment file (<code>.env</code>) and installs the gateway's official SDK via terminal.
+        </p>
+      </div>
+
+      <!-- VS Code Workspace Simulation -->
+      <div class="bg-vscode-bg border border-vscode-border rounded-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[420px]">
+        
+        <!-- VS Code Sidebar Explorer -->
+        <div class="w-full md:w-56 bg-vscode-sidebar border-b md:border-b-0 md:border-r border-vscode-border p-3 text-xs font-mono">
+          <div class="text-gray-400 uppercase tracking-wider text-[10px] font-bold mb-3 flex items-center justify-between">
+            <span>Explorer: Project</span>
+            <i class="fa-solid fa-ellipsis"></i>
+          </div>
+
+          <div class="space-y-1 text-gray-300">
+            <div class="flex items-center gap-2 px-2 py-1.5 rounded bg-gray-800/50 text-emerald-400">
+              <i class="fa-solid fa-folder-open text-amber-400"></i>
+              <span class="font-bold">alex-storefront</span>
+            </div>
+            
+            <div class="pl-4 space-y-1">
+              <div onclick="switchVsFile('env')" id="vs-file-env" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800/80 cursor-pointer text-amber-300 bg-gray-800">
+                <i class="fa-solid fa-key text-amber-400"></i>
+                <span>.env</span>
+              </div>
+              <div onclick="switchVsFile('package')" id="vs-file-package" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800/80 cursor-pointer text-gray-400">
+                <i class="fa-brands fa-node-js text-green-400"></i>
+                <span>package.json</span>
+              </div>
+              <div onclick="switchVsFile('gitignore')" id="vs-file-gitignore" class="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800/80 cursor-pointer text-gray-400">
+                <i class="fa-solid fa-eye-slash text-gray-500"></i>
+                <span>.gitignore</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VS Code Code View & Terminal Area -->
+        <div class="flex-1 flex flex-col bg-vscode-editor">
+          
+          <!-- VS Code Tab Header -->
+          <div class="bg-vscode-tabInactive border-b border-vscode-border flex text-xs font-mono">
+            <div id="vs-tab-title" class="px-4 py-2.5 bg-vscode-tabActive border-r border-vscode-border text-amber-300 font-bold flex items-center gap-2">
+              <i class="fa-solid fa-key"></i> .env
+            </div>
+          </div>
+
+          <!-- Code Content Area -->
+          <div class="p-4 font-mono text-xs flex-1 bg-vscode-bg overflow-x-auto text-gray-200">
+            <!-- View: .env -->
+            <div id="vs-content-env" class="space-y-1">
+              <p class="text-gray-500"># Security Rule: Never commit this file to public git repositories!</p>
+              <p class="text-teal-300">PORT=<span class="text-amber-400">5000</span></p>
+              <p class="text-teal-300">PAYMONGO_PUBLIC_KEY=<span class="text-emerald-300">"pk_live_11223344556677889900ddeeff"</span></p>
+              <p class="text-teal-300 font-bold">PAYMONGO_SECRET_KEY=<span class="text-amber-300">"sk_live_99887766554433221100aabbcc"</span></p>
+            </div>
+
+            <!-- View: package.json -->
+            <div id="vs-content-package" class="hidden space-y-1">
+              <p class="text-gray-400">{</p>
+              <p class="pl-4 text-purple-300">"name": <span class="text-emerald-300">"alex-storefront"</span>,</p>
+              <p class="pl-4 text-purple-300">"dependencies": {</p>
+              <p class="pl-8 text-purple-300">"express": <span class="text-emerald-300">"^4.18.2"</span>,</p>
+              <p class="pl-8 text-teal-300 font-bold">"paymongo": <span class="text-emerald-300">"^2.1.0"</span> <span class="text-gray-500">&lt;-- Installed SDK</span></p>
+              <p class="pl-4 text-purple-300">}</p>
+              <p class="text-gray-400">}</p>
+            </div>
+
+            <!-- View: .gitignore -->
+            <div id="vs-content-gitignore" class="hidden space-y-1">
+              <p class="text-gray-500"># Ignore secret environment variables</p>
+              <p class="text-amber-400 font-bold">.env</p>
+              <p class="text-gray-400">node_modules/</p>
+            </div>
+          </div>
+
+          <!-- VS Code Integrated Terminal -->
+          <div class="border-t border-vscode-border bg-gray-950 p-3 text-xs font-mono">
+            <div class="flex items-center justify-between text-[11px] text-gray-400 pb-2">
+              <span class="flex items-center gap-1.5 font-bold"><i class="fa-solid fa-terminal text-emerald-400"></i> Integrated Terminal</span>
+              <span>bash</span>
+            </div>
+            <div class="bg-gray-900 rounded p-2.5 text-gray-300 border border-gray-800 flex items-center justify-between">
+              <div>
+                <span class="text-emerald-400">alex@macbook</span>:<span class="text-blue-400">~/alex-storefront</span>$ <span class="text-yellow-300 font-bold">npm install paymongo</span>
+              </div>
+              <span class="text-[10px] text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> Installed SDK</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Step Navigation -->
+      <div class="flex justify-between items-center">
+        <button onclick="goToStep(1)" class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl text-xs transition border border-gray-700">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Back
+        </button>
+        <button onclick="goToStep(3)" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-2">
+          <span>Next: Step 3 - Write Checkout Code</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- STEP 3: Writing the Checkout Code -->
+    <!-- ========================================== -->
+    <section id="step-content-3" class="space-y-6 hidden">
+      
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold rounded-lg border border-emerald-500/20">Step 3</span>
+          <h2 class="text-xl font-bold text-gray-100">Writing the Backend Checkout Endpoint in <code>server.js</code></h2>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed">
+          Alex writes an Express route (<code>/api/create-checkout</code>). Hover or click on the code lines below to see how Alex passes the secret key and specifies the allowed payment methods (<code>gcash</code>, <code>paymaya</code>, <code>card</code>, <code>qrph</code>).
+        </p>
+      </div>
+
+      <!-- Interactive Annotated Code Block -->
+      <div class="bg-gray-950 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="bg-gray-900 px-5 py-3 border-b border-gray-800 flex justify-between items-center text-xs font-mono">
+          <span class="text-emerald-400 font-bold flex items-center gap-2">
+            <i class="fa-solid fa-file-code"></i> server.js
+          </span>
+          <span class="text-gray-500 text-[11px]">Hover over highlighted lines for deep explanations</span>
+        </div>
+
+        <div class="p-5 font-mono text-xs overflow-x-auto text-gray-300 space-y-1.5 leading-relaxed">
+          <div class="hover:bg-gray-900/80 p-1.5 rounded transition cursor-pointer" onclick="explainLine('sdk')">
+            <span class="text-purple-400">const</span> Paymongo = <span class="text-blue-400">require</span>(<span class="text-emerald-300">'paymongo'</span>);
+            <span class="text-gray-500 text-[11px] ml-4">// Imports SDK installed via npm</span>
+          </div>
+
+          <div class="hover:bg-gray-900/80 p-1.5 rounded transition cursor-pointer" onclick="explainLine('init')">
+            <span class="text-purple-400">const</span> paymongo = <span class="text-purple-400">new</span> <span class="text-yellow-300">Paymongo</span>(process.env.<span class="text-teal-300">PAYMONGO_SECRET_KEY</span>);
+            <span class="text-gray-500 text-[11px] ml-4">// Authenticates server using secret key</span>
+          </div>
+
+          <div class="pt-2 hover:bg-gray-900/80 p-1.5 rounded transition cursor-pointer" onclick="explainLine('endpoint')">
+            app.<span class="text-blue-400">post</span>(<span class="text-emerald-300">'/api/create-checkout'</span>, <span class="text-purple-400">async</span> (req, res) => {
+          </div>
+
+          <div class="pl-4 hover:bg-gray-900/80 p-1.5 rounded transition cursor-pointer bg-emerald-950/20 border-l-2 border-emerald-500" onclick="explainLine('methods')">
+            <span class="text-purple-400">const</span> session = <span class="text-purple-400">await</span> paymongo.checkoutSessions.<span class="text-blue-400">create</span>({<br>
+            &nbsp;&nbsp;amount: <span class="text-orange-400">465000</span>, <span class="text-gray-500">// ₱4,650.00 in centavos</span><br>
+            &nbsp;&nbsp;currency: <span class="text-emerald-300">'PHP'</span>,<br>
+            &nbsp;&nbsp;<span class="text-amber-300 font-bold">payment_method_types: ['gcash', 'paymaya', 'card', 'qrph']</span>,<br>
+            &nbsp;&nbsp;description: <span class="text-emerald-300">'Keychron Keyboard Purchase'</span>,<br>
+            &nbsp;&nbsp;success_url: <span class="text-emerald-300">'https://alexstore.ph/success'</span><br>
+            });
+          </div>
+
+          <div class="pl-4 hover:bg-gray-900/80 p-1.5 rounded transition cursor-pointer" onclick="explainLine('redirect')">
+            res.<span class="text-blue-400">json</span>({ checkoutUrl: session.checkout_url });
+            <span class="text-gray-500 text-[11px] ml-4">// Sends hosted payment link to user</span>
+          </div>
+
+          <div>});</div>
+        </div>
+
+        <!-- Explanation Drawer Box -->
+        <div id="code-explanation-box" class="bg-gray-900 p-4 border-t border-gray-800 text-xs">
+          <div class="flex items-center gap-2 text-emerald-400 font-bold mb-1">
+            <i class="fa-solid fa-circle-info"></i>
+            <span id="explain-title">Click any line of code above for explanation</span>
+          </div>
+          <p id="explain-body" class="text-gray-300">
+            This code creates a secure checkout session by calling PayMongo's API from Alex's backend server.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step Navigation -->
+      <div class="flex justify-between items-center">
+        <button onclick="goToStep(2)" class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl text-xs transition border border-gray-700">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Back
+        </button>
+        <button onclick="goToStep(4)" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-2">
+          <span>Next: Step 4 - Interactive Customer Experience</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- STEP 4: The Customer Experience -->
+    <!-- ========================================== -->
+    <section id="step-content-4" class="space-y-6 hidden">
+      
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold rounded-lg border border-emerald-500/20">Step 4</span>
+          <h2 class="text-xl font-bold text-gray-100">The Customer Experience (Live Checkout Preview)</h2>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed">
+          When a customer clicks <strong>"Proceed to Checkout"</strong> on Alex's store, Alex's site opens the hosted Gateway payment window. Test paying with GCash, Maya, or Card below to see what happens!
+        </p>
+      </div>
+
+      <!-- Customer Checkout Sandbox -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Customer Cart -->
+        <div class="lg:col-span-5 bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
+          <h3 class="font-bold text-gray-200 text-xs uppercase tracking-wider flex items-center gap-2 border-b border-gray-800 pb-3">
+            <i class="fa-solid fa-cart-shopping text-emerald-400"></i> Alex's Store Cart
+          </h3>
+
+          <div class="flex gap-3 items-center">
+            <div class="w-16 h-16 bg-gray-950 border border-gray-800 rounded-xl flex items-center justify-center text-2xl text-emerald-400 shrink-0">
+              <i class="fa-solid fa-keyboard"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-xs text-gray-200">Keychron K2 Keyboard</h4>
+              <p class="text-[11px] text-gray-400">RGB / Red Switches</p>
+              <p class="text-sm font-mono font-bold text-emerald-400 mt-1">₱4,650.00</p>
+            </div>
+          </div>
+
+          <button onclick="launchHostedGateway()" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-gray-950 font-bold rounded-xl text-xs transition duration-200 shadow-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-lock"></i>
+            <span>Proceed to Payment</span>
+          </button>
+        </div>
+
+        <!-- Right: Gateway Window View -->
+        <div class="lg:col-span-7 bg-gray-950 border border-gray-800 rounded-2xl p-5 shadow-2xl min-h-[300px] flex flex-col justify-center items-center text-center">
+          
+          <div id="customer-preview-idle" class="space-y-3 p-6">
+            <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-xl border border-emerald-500/20">
+              <i class="fa-solid fa-credit-card"></i>
+            </div>
+            <h4 class="font-bold text-gray-200 text-sm">Hosted Gateway Standby</h4>
+            <p class="text-xs text-gray-400 max-w-sm">
+              Click "Proceed to Payment" to simulate the customer being redirected to the PayMongo/Xendit checkout screen.
+            </p>
+          </div>
+
+          <!-- Active Gateway View -->
+          <div id="customer-preview-active" class="hidden w-full max-w-md bg-gray-900 border border-gray-800 rounded-xl p-5 text-left space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3">
+              <span class="font-bold text-xs text-gray-300">PayMongo Gateway Prompt</span>
+              <span class="text-emerald-400 font-mono text-sm font-bold">₱4,650.00</span>
+            </div>
+
+            <!-- Step A: Method Selection -->
+            <div id="pay-substep-methods" class="space-y-2">
+              <span class="text-[11px] text-gray-400 font-semibold">Select preferred method:</span>
+              
+              <button onclick="payWithMethod('GCash')" class="w-full p-3 bg-gray-950 hover:bg-gray-800 border border-gray-800 rounded-xl flex items-center justify-between text-xs text-gray-200 transition">
+                <span class="flex items-center gap-2 font-bold text-blue-400"><i class="fa-solid fa-wallet"></i> GCash</span>
+                <i class="fa-solid fa-chevron-right text-gray-600"></i>
+              </button>
+
+              <button onclick="payWithMethod('Maya')" class="w-full p-3 bg-gray-950 hover:bg-gray-800 border border-gray-800 rounded-xl flex items-center justify-between text-xs text-gray-200 transition">
+                <span class="flex items-center gap-2 font-bold text-emerald-400"><i class="fa-solid fa-mobile"></i> Maya</span>
+                <i class="fa-solid fa-chevron-right text-gray-600"></i>
+              </button>
+
+              <button onclick="payWithMethod('Card')" class="w-full p-3 bg-gray-950 hover:bg-gray-800 border border-gray-800 rounded-xl flex items-center justify-between text-xs text-gray-200 transition">
+                <span class="flex items-center gap-2 font-bold text-purple-400"><i class="fa-solid fa-credit-card"></i> Visa / Mastercard</span>
+                <i class="fa-solid fa-chevron-right text-gray-600"></i>
+              </button>
+            </div>
+
+            <!-- Step B: OTP Input -->
+            <div id="pay-substep-otp" class="hidden space-y-3">
+              <div class="bg-blue-600/10 border border-blue-500/20 p-3 rounded-lg text-center">
+                <span class="text-xs font-bold text-blue-400" id="otp-wallet-title">GCash Authorization</span>
+                <p class="text-[10px] text-gray-400 mt-0.5">Enter demo OTP code sent to phone</p>
+              </div>
+              <input type="text" value="123456" id="otp-code-input" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-center font-mono text-emerald-400 font-bold">
+              <button onclick="completePayment()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg text-xs transition">
+                Confirm & Pay ₱4,650.00
+              </button>
+            </div>
+
+            <!-- Step C: Success -->
+            <div id="pay-substep-success" class="hidden text-center py-4 space-y-2">
+              <div class="w-10 h-10 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-lg">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <h5 class="font-bold text-sm text-gray-100">Payment Authorized!</h5>
+              <p class="text-[11px] text-gray-400">
+                Gateway sent transaction payload to Alex's Webhook URL.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Step Navigation -->
+      <div class="flex justify-between items-center">
+        <button onclick="goToStep(3)" class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl text-xs transition border border-gray-700">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Back
+        </button>
+        <button onclick="goToStep(5)" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center gap-2">
+          <span>Next: Step 5 - Webhooks & Order Fulfillment</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- STEP 5: Fulfilling the Order via Webhooks -->
+    <!-- ========================================== -->
+    <section id="step-content-5" class="space-y-6 hidden">
+      
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold rounded-lg border border-emerald-500/20">Step 5</span>
+          <h2 class="text-xl font-bold text-gray-100">Order Fulfillment via Webhooks</h2>
+        </div>
+        <p class="text-sm text-gray-300 leading-relaxed">
+          Once the customer approves the payment in GCash or Maya, the gateway sends an automated HTTP <code>POST</code> payload (a <strong>Webhook</strong>) directly to Alex's server endpoint to update the order database automatically.
+        </p>
+      </div>
+
+      <!-- Webhook Dispatch Inspector -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Code Listener -->
+        <div class="lg:col-span-6 bg-gray-950 border border-gray-800 rounded-2xl p-4 flex flex-col justify-between shadow-2xl">
+          <div>
+            <div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-3 text-xs font-mono">
+              <span class="text-purple-400 font-bold"><i class="fa-solid fa-satellite-dish"></i> webhook-listener.js</span>
+              <span class="text-gray-500 text-[10px]">Alex's Server Endpoint</span>
+            </div>
+
+            <pre class="font-mono text-xs text-gray-300 space-y-1 overflow-x-auto leading-relaxed">
+app.<span class="text-blue-400">post</span>(<span class="text-emerald-300">'/api/webhooks'</span>, (req, res) => {
+  <span class="text-purple-400">const</span> event = req.body.data;
+
+  <span class="text-purple-400">if</span> (event.attributes.type === <span class="text-emerald-300">'payment.paid'</span>) {
+    <span class="text-purple-400">const</span> orderId = event.attributes.data.id;
+    <span class="text-blue-400">markOrderAsPaidInDatabase</span>(orderId);
+    <span class="text-blue-400">sendConfirmationEmail</span>();
+  }
+
+  res.<span class="text-blue-400">status</span>(<span class="text-orange-400">200</span>).<span class="text-blue-400">send</span>({ received: <span class="text-purple-400">true</span> });
+});</pre>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-gray-800">
+            <button onclick="triggerSimulatedWebhook()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+              <i class="fa-solid fa-bolt"></i>
+              <span>Simulate PayMongo Firing "payment.paid" Webhook</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Incoming Payload Console -->
+        <div class="lg:col-span-6 bg-gray-900 border border-gray-800 rounded-2xl p-4 flex flex-col shadow-2xl">
+          <div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-3 text-xs font-mono">
+            <span class="text-emerald-400 font-bold"><i class="fa-solid fa-terminal"></i> Live HTTP Webhook Payload</span>
+            <span id="webhook-badge" class="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded font-mono">Awaiting Event</span>
+          </div>
+
+          <div class="flex-1 bg-gray-950 rounded-xl p-3 font-mono text-[11px] overflow-y-auto text-gray-300 border border-gray-800 min-h-[220px]">
+            <pre id="webhook-json-display" class="text-gray-500 italic">// Click "Simulate PayMongo Firing Webhook" to inspect the incoming JSON payload...</pre>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Final Completion Box -->
+      <div id="guide-complete-card" class="hidden bg-emerald-950/40 border border-emerald-500/40 rounded-2xl p-6 text-center space-y-3">
+        <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-xl border border-emerald-500/30">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white">Congratulations! You Mastered Payment Integration</h3>
+        <p class="text-xs text-gray-300 max-w-xl mx-auto">
+          You now understand the exact technical architecture that developers like Alex use to integrate GCash, Maya, and credit cards into websites via Payment Gateways!
+        </p>
+      </div>
+
+      <!-- Step Navigation -->
+      <div class="flex justify-between items-center">
+        <button onclick="goToStep(4)" class="px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl text-xs transition border border-gray-700">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Back
+        </button>
+        <button onclick="goToStep(1)" class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold rounded-xl text-xs transition border border-gray-700 flex items-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>Restart Walkthrough</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    let currentStep = 1;
+    let isKeyVisible = false;
+
+    // Step Switcher Logic
+    function goToStep(stepNum) {
+      currentStep = stepNum;
+
+      // Update Header Progress
+      document.getElementById('progress-text').innerText = `${stepNum} / 5`;
+      document.getElementById('progress-bar').style.width = `${stepNum * 20}%`;
+
+      // Hide all step sections
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`step-content-${i}`).classList.add('hidden');
+        
+        // Update tab button styles
+        const tab = document.getElementById(`step-tab-${i}`);
+        if (i === stepNum) {
+          tab.className = "px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition bg-emerald-600 text-white shadow";
+          tab.querySelector('span').className = "w-5 h-5 rounded-full bg-emerald-800 text-white text-[10px] font-mono flex items-center justify-center";
+        } else {
+          tab.className = "px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition text-gray-400 hover:text-white hover:bg-gray-900";
+          tab.querySelector('span').className = "w-5 h-5 rounded-full bg-gray-800 text-gray-300 text-[10px] font-mono flex items-center justify-center";
+        }
+
+        // Highlight Architecture Node corresponding to step
+        const node = document.getElementById(`arch-node-${Math.min(i, 4)}`);
+        if (i === stepNum) {
+          node.classList.add('border-emerald-500/80', 'glow-step');
+        } else {
+          node.classList.remove('border-emerald-500/80', 'glow-step');
+        }
+      }
+
+      // Show selected content
+      document.getElementById(`step-content-${stepNum}`).classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Step 1 Functions
+    function toggleKeyVisibility() {
+      isKeyVisible = !isKeyVisible;
+      const keySpan = document.getElementById('sk_key_value');
+      const eyeIcon = document.getElementById('eye-icon');
+      const eyeText = document.getElementById('eye-text');
+
+      if (isKeyVisible) {
+        keySpan.innerText = "sk_live_99887766554433221100aabbcc";
+        eyeIcon.className = "fa-solid fa-eye-slash";
+        eyeText.innerText = "Hide";
+      } else {
+        keySpan.innerText = "sk_live_••••••••••••••••••••••••••••";
+        eyeIcon.className = "fa-solid fa-eye";
+        eyeText.innerText = "Show";
+      }
+    }
+
+    function generateNewKeys() {
+      const randHex = () => Math.random().toString(16).substring(2, 10);
+      document.getElementById('pk_key_value').innerText = `pk_live_${randHex()}${randHex()}`;
+      if (isKeyVisible) {
+        document.getElementById('sk_key_value').innerText = `sk_live_${randHex()}${randHex()}`;
+      }
+    }
+
+    function copyText(elementId, labelId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text);
+      document.getElementById(labelId).innerText = "Copied!";
+      setTimeout(() => {
+        document.getElementById(labelId).innerText = "Copy";
+      }, 1500);
+    }
+
+    // Step 2 Functions
+    function switchVsFile(file) {
+      ['env', 'package', 'gitignore'].forEach(f => {
+        document.getElementById(`vs-content-${f}`).classList.add('hidden');
+        document.getElementById(`vs-file-${f}`).className = "flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800/80 cursor-pointer text-gray-400";
+      });
+
+      document.getElementById(`vs-content-${file}`).classList.remove('hidden');
+      document.getElementById(`vs-file-${file}`).className = "flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800/80 cursor-pointer text-amber-300 bg-gray-800";
+      
+      const titleMap = {
+        env: '<i class="fa-solid fa-key"></i> .env',
+        package: '<i class="fa-brands fa-node-js"></i> package.json',
+        gitignore: '<i class="fa-solid fa-eye-slash"></i> .gitignore'
+      };
+      document.getElementById('vs-tab-title').innerHTML = titleMap[file];
+    }
+
+    // Step 3 Functions
+    function explainLine(type) {
+      const title = document.getElementById('explain-title');
+      const body = document.getElementById('explain-body');
+
+      const data = {
+        sdk: {
+          t: "SDK Import",
+          b: "Imports the official PayMongo software development kit that Alex installed using `npm install paymongo`."
+        },
+        init: {
+          t: "SDK Authentication",
+          b: "Initializes the client using the Secret Key (`PAYMONGO_SECRET_KEY`) stored safely inside the `.env` file."
+        },
+        endpoint: {
+          t: "Express API Route",
+          b: "Creates a secure backend endpoint (`/api/create-checkout`) that Alex's website calls when a user clicks 'Proceed to Payment'."
+        },
+        methods: {
+          t: "Allowed Payment Types Array",
+          b: "Alex simply lists ['gcash', 'paymaya', 'card', 'qrph']. The gateway automatically renders these payment choices on the checkout window!"
+        },
+        redirect: {
+          t: "Hosted Session Redirect",
+          b: "Returns the hosted payment session URL created by PayMongo back to the browser so the customer can pay safely."
+        }
+      };
+
+      if (data[type]) {
+        title.innerText = data[type].t;
+        body.innerText = data[type].b;
+      }
+    }
+
+    // Step 4 Functions
+    function launchHostedGateway() {
+      document.getElementById('customer-preview-idle').classList.add('hidden');
+      document.getElementById('customer-preview-active').classList.remove('hidden');
+      document.getElementById('pay-substep-methods').classList.remove('hidden');
+      document.getElementById('pay-substep-otp').classList.add('hidden');
+      document.getElementById('pay-substep-success').classList.add('hidden');
+    }
+
+    function payWithMethod(methodName) {
+      document.getElementById('pay-substep-methods').classList.add('hidden');
+      document.getElementById('pay-substep-otp').classList.remove('hidden');
+      document.getElementById('otp-wallet-title').innerText = `${methodName} Payment Authorization`;
+    }
+
+    function completePayment() {
+      document.getElementById('pay-substep-otp').classList.add('hidden');
+      document.getElementById('pay-substep-success').classList.remove('hidden');
+    }
+
+    // Step 5 Functions
+    function triggerSimulatedWebhook() {
+      const jsonDisplay = document.getElementById('webhook-json-display');
+      const badge = document.getElementById('webhook-badge');
+
+      badge.className = "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono font-bold animate-pulse";
+      badge.innerText = "HTTP 200 OK (Webhook Received)";
+
+      const payload = {
+        "event": "payment.paid",
+        "data": {
+          "id": "pay_9921_x8_gcash",
+          "type": "payment",
+          "attributes": {
+            "amount": 465000,
+            "currency": "PHP",
+            "status": "paid",
+            "payment_intent_id": "pi_1102983",
+            "source": {
+              "type": "gcash",
+              "account_number": "0917***8899"
+            },
+            "paid_at": Math.floor(Date.now() / 1000)
+          }
+        }
+      };
+
+      jsonDisplay.innerText = JSON.stringify(payload, null, 2);
+      jsonDisplay.className = "text-emerald-400 font-mono text-[11px]";
+
+      document.getElementById('guide-complete-card').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
